@@ -23,3 +23,8 @@ for step in range(2001):
 
     if step % 10 == 0:
         print(step, "Cost: ", cost_val, "\nPrediction: ", hy_val, "\n")
+
+print("Your score will be ", sess.run(hypothesis,
+                                      feed_dict={X: [[100, 70, 101]]}))
+print("Other scores will be ", sess.run(hypothesis,
+                                        feed_dict={X: [[60, 70, 110], [90, 100, 80]]}))
