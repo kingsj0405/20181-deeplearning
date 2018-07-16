@@ -1,13 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-data = np.array([
-    [73, 80, 75, 152],
-    [93, 88, 93, 185],
-    [89, 91, 90, 180],
-    [96, 98, 100, 196],
-    [73, 66, 70, 142]
-])
+data = np.loadtxt('data-01-test-score.csv', delimiter=',', dtype=np.float32)
 x_data, y_data = np.hsplit(data, [3])
 
 X = tf.placeholder(tf.float32, shape=[None, 3])
