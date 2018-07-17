@@ -1,8 +1,20 @@
 import tensorflow as tf
 import numpy as np
 
-data = np.loadtxt("data-03-diabetes.csv", dtype=np.float32)
-x_data, y_data = data[:, 0:-1], data[:, -1:]
+# filename queue
+filename_queue = tf.train.string_input_producer(
+    ["data-03-diabetes.csv"],
+    shuffle=False
+)
+
+# file reader
+reader = tf.TextLineReader()
+key, value = reader.read(filename_queue)
+
+# file decoder
+record_defaults = [[0.] for x in range(9)]
+data = tf.decode_csv(value, record_defaults=record_defaults, field_delim=',')
+x_data, y_data = tf.train.batch([data[0:-1], data[-1:]], batch_size=10)
 
 # placeholder
 X = tf.placeholder(tf.float32, shape=[None, 8])
@@ -26,11 +38,22 @@ accuracy = tf.reduce_mean(tf.cast(tf.equal(predicted, Y), dtype=tf.float32))
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
+    # Coordinator for thread sync
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
     for step in range(10001):
-        cost_val, _ = sess.run([cost, train], feed_dict={X: x_data, Y: y_data})
+        x_batch, y_batch = sess.run([x_data, y_data])
+        cost_val, _ = sess.run([cost, train],
+                               feed_dict={X: x_batch, Y: y_batch})
         if step % 200 == 0:
             print(step, cost_val)
 
+    x_batch, y_batch = sess.run([x_data, y_data])
     h, c, a = sess.run([hypothesis, predicted, accuracy],
-                       feed_dict={X: x_data, Y: y_data})
+                       feed_dict={X: x_batch, Y: y_batch})
     print("\nHypothesis: ", h, "\nCorrect (Y): ", c, "\nAccuracy: ", a)
+
+    # sync on here
+    coord.request_stop()
+    coord.join(threads)
