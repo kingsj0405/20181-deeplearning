@@ -7,9 +7,9 @@ from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 input_layer = 784
-first_layer = 300
-second_layer = 100
-thrid_layer = 50
+first_layer = 1000
+second_layer = 500
+thrid_layer = 100
 nb_classes = 10
 
 X = tf.placeholder(tf.float32, [None, input_layer])
@@ -37,7 +37,7 @@ optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(cost)
 is_correct = tf.equal(tf.arg_max(hypothesis, 1), tf.arg_max(Y, 1))
 accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
-training_epochs = 15
+training_epochs = 50
 batch_size = 100
 
 with tf.Session() as sess:
