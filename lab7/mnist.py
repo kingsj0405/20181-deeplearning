@@ -6,14 +6,31 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
+input_layer = 784
+first_layer = 300
+second_layer = 100
+thrid_layer = 50
 nb_classes = 10
 
-X = tf.placeholder(tf.float32, [None, 784])
+X = tf.placeholder(tf.float32, [None, input_layer])
 Y = tf.placeholder(tf.float32, [None, nb_classes])
-W = tf.Variable(tf.random_normal([784, nb_classes]))
-b = tf.Variable(tf.random_normal([nb_classes]))
 
-hypothesis = tf.nn.softmax(tf.matmul(X, W) + b)
+W1 = tf.Variable(tf.random_normal([input_layer, first_layer]))
+b1 = tf.Variable(tf.random_normal([first_layer]))
+layer1 = tf.sigmoid(tf.matmul(X, W1) + b1)
+
+W2 = tf.Variable(tf.random_normal([first_layer, second_layer]))
+b2 = tf.Variable(tf.random_normal([second_layer]))
+layer2 = tf.sigmoid(tf.matmul(layer1, W2) + b2)
+
+W3 = tf.Variable(tf.random_normal([second_layer, thrid_layer]))
+b3 = tf.Variable(tf.random_normal([thrid_layer]))
+layer3 = tf.sigmoid(tf.matmul(layer2, W3) + b3)
+
+W4 = tf.Variable(tf.random_normal([thrid_layer, nb_classes]))
+b4 = tf.Variable(tf.random_normal([nb_classes]))
+hypothesis = tf.nn.softmax(tf.matmul(layer3, W4) + b4)
+
 cost = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(hypothesis), axis=1))
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(cost)
 
