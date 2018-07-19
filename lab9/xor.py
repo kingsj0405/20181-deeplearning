@@ -7,11 +7,11 @@ y_data = np.array([[0], [1], [1], [0]], dtype=np.float32)
 X = tf.placeholder(tf.float32)
 Y = tf.placeholder(tf.float32)
 
-W1 = tf.Variable(tf.random_normal([2, 2]), name='weight1')
-b1 = tf.Variable(tf.random_normal([2]), name='bias1')
+W1 = tf.Variable(tf.random_normal([2, 10]), name='weight1')
+b1 = tf.Variable(tf.random_normal([10]), name='bias1')
 layer1 = tf.sigmoid(tf.matmul(X, W1) + b1)
 
-W2 = tf.Variable(tf.random_normal([2, 1]), name='weight2')
+W2 = tf.Variable(tf.random_normal([10, 1]), name='weight2')
 b2 = tf.Variable(tf.random_normal([1]), name='bias2')
 hypothesis = tf.sigmoid(tf.matmul(layer1, W2) + b2)
 
