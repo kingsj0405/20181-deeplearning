@@ -2,6 +2,10 @@
 
 venv
 
+# Tensorflow log for Tensorboard
+
+logs
+
 # .gitignore from Tensorflow
 # https://github.com/tensorflow/tensorflow/blob/master/.gitignore
 
