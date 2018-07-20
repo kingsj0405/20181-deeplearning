@@ -5,6 +5,7 @@ venv
 # Tensorflow log for Tensorboard
 
 logs
+MNIST_data
 
 # .gitignore from Tensorflow
 # https://github.com/tensorflow/tensorflow/blob/master/.gitignore
