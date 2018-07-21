@@ -19,8 +19,13 @@ conv2d_img = conv2d.eval()
 print("conv2d_img.shape", conv2d_img.shape)
 conv2d_img = np.swapaxes(conv2d_img, 0, 3)
 # Output
-for i, one_img in enumerate(conv2d_img):
-    print(i, ": ", one_img.reshape(3, 3))
-    plt.subplot(1, 2, i+1)
-    plt.imshow(one_img.reshape(3, 3), cmap='gray')
-plt.show()
+# for i, one_img in enumerate(conv2d_img):
+#     print(i, ": ", one_img.reshape(3, 3))
+#     plt.subplot(1, 2, i+1)
+#     plt.imshow(one_img.reshape(3, 3), cmap='gray')
+# plt.show()
+
+pool = tf.nn.max_pool(image, ksize=[1, 2, 2, 1],
+                      strides=[1, 1, 1, 1], padding='SAME')
+print("pool.shape", pool.shape)
+print(pool.eval())
