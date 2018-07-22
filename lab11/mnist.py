@@ -10,7 +10,7 @@ class Model:
         self.name = name
         self._build_net()
 
-    def _build_net(self, learning_rate=1e-2):
+    def _build_net(self, learning_rate=1e-3):
         with tf.variable_scope(self.name):
             # dropout (keep_prob) rate 0.7~0.5 on training, but should be 1 for testing
             self.keep_prob = tf.placeholder(tf.float32)
@@ -28,6 +28,7 @@ class Model:
             L1 = tf.nn.max_pool(L1, ksize=[1, 2, 2, 1],
                                 strides=[1, 2, 2, 1], padding='SAME')
             #       Pool     -> (?, 14, 14, 32)
+            L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
 
             # L2    ImgIn shape=(?, 14, 14, 32)
             W2 = tf.Variable(tf.random_normal([3, 3, 32, 64], stddev=1e-2))
@@ -36,16 +37,33 @@ class Model:
             L2 = tf.nn.relu(L2)
             L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1], strides=[
                                 1, 2, 2, 1], padding='SAME')
-            print(L2)
             #       Pool     -> (?, 7, 7, 64)
-            L2 = tf.reshape(L2, [-1, 7 * 7 * 64])
+            L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
+
+            # L3    ImgIn shape=(?, 7, 7, 64)
+            W3 = tf.Variable(tf.random_normal([3, 3, 64, 128], stddev=1e-2))
+            L3 = tf.nn.conv2d(L2, W3, strides=[1, 1, 1, 1], padding='SAME')
+            #       Conv     -> (?, 7, 7, 128)
+            L3 = tf.nn.relu(L3)
+            L3 = tf.nn.max_pool(L3, ksize=[1, 2, 2, 1],
+                                strides=[1, 2, 2, 1], padding='SAME')
+            #       Pool     -> (?, 4, 4, 128)
+            L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
+            L3_flat = tf.reshape(L3, [-1, 128 * 4 * 4])
             #       Reshape  -> (?, 3136)
 
-            # FCL   FanIn shape=(?, 3136)
-            W3 = tf.get_variable("W3", shape=[7 * 7 * 64, 10],
+            # L4 FC 4x4x128 inputs -> 625 outputs
+            W4 = tf.get_variable("W4", shape=[128 * 4 * 4, 625],
                                  initializer=tf.contrib.layers.xavier_initializer())
-            b = tf.Variable(tf.random_normal([10]))
-            self.logits = tf.matmul(L2, W3) + b
+            b4 = tf.Variable(tf.random_normal([625]))
+            L4 = tf.nn.relu(tf.matmul(L3_flat, W4) + b4)
+            L4 = tf.nn.dropout(L4, keep_prob=self.keep_prob)
+
+            # L5 Final FC 625 inputs -> 10 outputs
+            W5 = tf.get_variable("W5", shape=[625, 10],
+                                 initializer=tf.contrib.layers.xavier_initializer())
+            b5 = tf.Variable(tf.random_normal([10]))
+            self.logits = tf.matmul(L4, W5) + b5
 
             # cost/loss & optimizer
             self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
