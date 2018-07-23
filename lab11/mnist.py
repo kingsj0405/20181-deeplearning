@@ -50,7 +50,7 @@ class Model:
             self.logits = tf.layers.dense(inputs=dropout4, units=10)
 
             # cost/loss & optimizer
-            self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
                 logits=self.logits, labels=self.Y))
             self.optimizer = tf.train.AdamOptimizer(
                 learning_rate=learning_rate).minimize(self.cost)
