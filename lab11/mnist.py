@@ -12,58 +12,42 @@ class Model:
 
     def _build_net(self, learning_rate=1e-3):
         with tf.variable_scope(self.name):
-            # dropout (keep_prob) rate 0.7~0.5 on training, but should be 1 for testing
-            self.keep_prob = tf.placeholder(tf.float32)
+            # keep dropout when training
+            self.training = tf.placeholder(tf.bool)
 
             # input placeholders
             self.X = tf.placeholder(tf.float32, [None, 784])
             X_img = tf.reshape(self.X, [-1, 28, 28, 1])
             self.Y = tf.placeholder(tf.float32, [None, 10])
 
-            # L1    ImgIn shape=(?, 28, 28, 1)
-            W1 = tf.Variable(tf.random_normal([3, 3, 1, 32], stddev=1e-2))
-            L1 = tf.nn.conv2d(X_img, W1, strides=[1, 1, 1, 1], padding='SAME')
-            #       Conv     -> (?, 28, 28, 32)
-            L1 = tf.nn.relu(L1)
-            L1 = tf.nn.max_pool(L1, ksize=[1, 2, 2, 1],
-                                strides=[1, 2, 2, 1], padding='SAME')
-            #       Pool     -> (?, 14, 14, 32)
-            L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
+            conv1 = tf.layers.conv2d(inputs=X_img, filters=32, kernel_size=[3, 3],
+                                     padding="SAME", activation=tf.nn.relu)
+            pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2],
+                                            padding="SAME", strides=2)
+            dropout1 = tf.layers.dropout(inputs=pool1,
+                                         rate=0.3, training=self.training)
 
-            # L2    ImgIn shape=(?, 14, 14, 32)
-            W2 = tf.Variable(tf.random_normal([3, 3, 32, 64], stddev=1e-2))
-            L2 = tf.nn.conv2d(L1, W2, strides=[1, 1, 1, 1], padding='SAME')
-            #       Conv     -> (?, 14, 14, 64)
-            L2 = tf.nn.relu(L2)
-            L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1], strides=[
-                                1, 2, 2, 1], padding='SAME')
-            #       Pool     -> (?, 7, 7, 64)
-            L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
+            conv2 = tf.layers.conv2d(inputs=dropout1, filters=64, kernel_size=[3, 3],
+                                     padding="SAME", activation=tf.nn.relu)
+            pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2],
+                                            padding="SAME", strides=2)
+            dropout2 = tf.layers.dropout(inputs=pool2,
+                                         rate=0.3, training=self.training)
 
-            # L3    ImgIn shape=(?, 7, 7, 64)
-            W3 = tf.Variable(tf.random_normal([3, 3, 64, 128], stddev=1e-2))
-            L3 = tf.nn.conv2d(L2, W3, strides=[1, 1, 1, 1], padding='SAME')
-            #       Conv     -> (?, 7, 7, 128)
-            L3 = tf.nn.relu(L3)
-            L3 = tf.nn.max_pool(L3, ksize=[1, 2, 2, 1],
-                                strides=[1, 2, 2, 1], padding='SAME')
-            #       Pool     -> (?, 4, 4, 128)
-            L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
-            L3_flat = tf.reshape(L3, [-1, 128 * 4 * 4])
-            #       Reshape  -> (?, 3136)
+            conv3 = tf.layers.conv2d(inputs=dropout2, filters=128, kernel_size=[3, 3],
+                                     padding="SAME", activation=tf.nn.relu)
+            pool3 = tf.layers.max_pooling2d(inputs=conv3, pool_size=[2, 2],
+                                            padding="SAME", strides=2)
+            dropout3 = tf.layers.dropout(inputs=pool3,
+                                         rate=0.3, training=self.training)
 
-            # L4 FC 4x4x128 inputs -> 625 outputs
-            W4 = tf.get_variable("W4", shape=[128 * 4 * 4, 625],
-                                 initializer=tf.contrib.layers.xavier_initializer())
-            b4 = tf.Variable(tf.random_normal([625]))
-            L4 = tf.nn.relu(tf.matmul(L3_flat, W4) + b4)
-            L4 = tf.nn.dropout(L4, keep_prob=self.keep_prob)
+            flat = tf.reshape(dropout3, [-1, 128 * 4 * 4])
+            dense4 = tf.layers.dense(inputs=flat,
+                                     units=625, activation=tf.nn.relu)
+            dropout4 = tf.layers.dropout(inputs=dense4,
+                                         rate=0.5, training=self.training)
 
-            # L5 Final FC 625 inputs -> 10 outputs
-            W5 = tf.get_variable("W5", shape=[625, 10],
-                                 initializer=tf.contrib.layers.xavier_initializer())
-            b5 = tf.Variable(tf.random_normal([10]))
-            self.logits = tf.matmul(L4, W5) + b5
+            self.logits = tf.layers.dense(inputs=dropout4, units=10)
 
             # cost/loss & optimizer
             self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
@@ -76,15 +60,15 @@ class Model:
             self.accuracy = tf.reduce_mean(
                 tf.cast(correct_prediction, tf.float32))
 
-    def predict(self, x_test, keep_prob=1.0):
-        return self.sess.run(self.logits, feed_dict={self.X: x_test, self.keep_prob: keep_prob})
+    def predict(self, x_test):
+        return self.sess.run(self.logits, feed_dict={self.X: x_test, self.training: False})
 
-    def get_accuracy(self, x_test, y_test, keep_prob=1.0):
-        return self.sess.run(self.accuracy, feed_dict={self.X: x_test, self.Y: y_test, self.keep_prob: keep_prob})
+    def get_accuracy(self, x_test, y_test):
+        return self.sess.run(self.accuracy, feed_dict={self.X: x_test, self.Y: y_test, self.training: False})
 
-    def train(self, x_data, y_data, keep_prob=0.7):
+    def train(self, x_data, y_data):
         return self.sess.run([self.cost, self.optimizer], feed_dict={
-            self.X: x_data, self.Y: y_data, self.keep_prob: keep_prob
+            self.X: x_data, self.Y: y_data, self.training: True
         })
 
 
