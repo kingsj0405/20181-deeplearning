@@ -1,35 +1,54 @@
 import tensorflow as tf
 import numpy as np
-from tensorflow.contrib import rnn
-import pprint
 
 
 # constant
-hidden_size = 2
-sequence_length = 5
-batch_size = 3
+input_size = 5
+hidden_size = 5
+sequence_length = 6
+batch_size = 1
+learning_rate = 1e-1
 
-# initialize
-pp = pprint.PrettyPrinter(indent=4)
-sess = tf.InteractiveSession()
+# Make data
+idx2char = ['h', 'i', 'e', 'l', 'o']
+x_data = [[0, 1, 0, 2, 3, 3]]
+x_one_hot = [[[1, 0, 0, 0, 0],
+              [0, 1, 0, 0, 0],
+              [1, 0, 0, 0, 0],
+              [0, 0, 1, 0, 0],
+              [0, 0, 0, 1, 0],
+              [0, 0, 0, 1, 0]]]
+y_data = [[1, 0, 2, 3, 3, 4]]
 
-# One hot encoding
-h = [1, 0, 0, 0]
-e = [0, 1, 0, 0]
-l = [0, 0, 1, 0]
-o = [0, 0, 0, 1]
+# RNN model
+X = tf.placeholder(tf.float32, [None, sequence_length, input_size])
+Y = tf.placeholder(tf.int32, [None, sequence_length])
 
-# make data
-x_data = np.array([[h, e, l, l, o],
-                   [e, o, l, l, l],
-                   [l, l, e, e, l]], dtype=np.float32)
-pp.pprint(x_data)
+cell = tf.contrib.rnn.BasicLSTMCell(num_units=hidden_size, state_is_tuple=True)
+initial_state = cell.zero_state(batch_size, tf.float32)
+outputs, _states = tf.nn.dynamic_rnn(
+    cell, X, initial_state=initial_state, dtype=tf.float32)
 
-# make graph
-cell = tf.contrib.rnn.BasicLSTMCell(num_units=hidden_size)
-print(cell.output_size, cell.state_size)
+# cost/loss function
+weights = tf.ones([batch_size, sequence_length])
+sequence_loss = tf.contrib.seq2seq.sequence_loss(
+    logits=outputs, targets=Y, weights=weights)  # HACK: outputs not for logits
+loss = tf.reduce_mean(sequence_loss)
+
+# optimizer
+train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+
+# prediction
+prediction = tf.argmax(outputs, axis=2)
 
 # run
-outputs, _states = tf.nn.dynamic_rnn(cell, x_data, dtype=tf.float32)
-sess.run(tf.global_variables_initializer())
-pp.pprint(outputs.eval())
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    for i in range(2000):
+        l, _ = sess.run([loss, train], feed_dict={X: x_one_hot, Y: y_data})
+        if i % 200 == 0:
+            result = sess.run(prediction, feed_dict={X: x_one_hot})
+            print(i, "loss:", l, "prediction: ", result, "true Y: ", y_data)
+
+            result_str = [idx2char[c] for c in np.squeeze(result)]
+            print("\tPrediction str: ", ''.join(result_str))
